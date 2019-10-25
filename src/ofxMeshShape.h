@@ -34,16 +34,27 @@ public:
 	void setRectMode(ofRectMode mode) { rectmode_ = mode; }
 	bool isClosed() const { return true; }
 	ofMesh getFace() const;
-private:
-	std::vector<glm::vec3> getVertices() const;
+protected:
+	virtual std::vector<glm::vec3> getVertices() const;
 	ofRectMode rectmode_=OF_RECTMODE_CORNER;
 };
 class Contour : public Shape2D, public ofPolyline {
 public:
 	bool isClosed() const { return ofPolyline::isClosed(); }
 	ofMesh getFace() const;
-private:
-	std::vector<glm::vec3> getVertices() const { return ofPolyline::getVertices(); }
+protected:
+	virtual std::vector<glm::vec3> getVertices() const { return ofPolyline::getVertices(); }
+};
+class AdjacencyLine : public Contour {
+public:
+	void setLead(const glm::vec3 &pos) { lead_ = pos; }
+	void setTrail(const glm::vec3 &pos) { trail_ = pos; }
+	bool isClosed() const { return false; }
+	ofMesh getOutline() const;
+	using Contour::getOutline;
+protected:
+	virtual std::vector<glm::vec3> getVertices() const;
+	glm::vec3 lead_, trail_;
 };
 }
 }

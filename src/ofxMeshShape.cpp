@@ -92,6 +92,7 @@ ofMesh Shape2D::getOutline(float width_inner, float width_outer) const
 {
 	auto getSlidedVertex = [](vec3 v0, vec3 v1, vec3 v2, float width_counterclockwise, vec3 normal) {
 		vec3 axis = cross(v2-v1, v1-v0);
+		if(length(axis) == 0) axis = normal;
 		int sign = ofSign(dot(normal, axis));
 		vec3 move01 = sign*normalize(glm::rotate(v1-v0, half_pi<float>(), axis))*width_counterclockwise;
 		vec3 move12 = sign*normalize(glm::rotate(v2-v1, half_pi<float>(), axis))*width_counterclockwise;
@@ -99,11 +100,7 @@ ofMesh Shape2D::getOutline(float width_inner, float width_outer) const
 		return getIntersection3D(v0+move01, v1+move01, v1+move12, v2+move12, intersection)
 			? intersection : v1+move01;
 	};
-	auto wrapIndex = [](int index, size_t size) {
-		return (index+size)%size;
-	};
 	ofMesh mesh = getOutline();
-	mesh.setMode(OF_PRIMITIVE_TRIANGLE_STRIP);
 	auto vertices = mesh.getVertices();
 	if(vertices.size() < 2) {
 		return ofMesh();
@@ -111,10 +108,16 @@ ofMesh Shape2D::getOutline(float width_inner, float width_outer) const
 	mesh.clearVertices();
 	mesh.clearIndices();
 	size_t num = vertices.size();
+	auto wrapIndex = [num](int index) {
+		return (index+num)%num;
+	};
+	if(mesh.getMode() == OF_PRIMITIVE_LINE_STRIP_ADJACENCY) {
+		num -= 2;
+	}
 	for(unsigned int i = 0; i < num; ++i) {
-		vec3 v0 = vertices[wrapIndex(i-1, num)],
-		v1 = vertices[wrapIndex(i, num)],
-		v2 = vertices[wrapIndex(i+1, num)];
+		vec3 v0 = vertices[wrapIndex(i+0)],
+		v1 = vertices[wrapIndex(i+1)],
+		v2 = vertices[wrapIndex(i+2)];
 		vec3 inner = getSlidedVertex(v0, v1, v2, width_inner, getNormal());
 		vec3 outer = getSlidedVertex(v0, v1, v2, -width_outer, getNormal());
 		mesh.addVertex(inner);
@@ -125,6 +128,7 @@ ofMesh Shape2D::getOutline(float width_inner, float width_outer) const
 	if(isClosed()) {
 		mesh.addIndices({0,1});
 	}
+	mesh.setMode(OF_PRIMITIVE_TRIANGLE_STRIP);
 	return mesh;
 }
 
@@ -162,7 +166,7 @@ ofMesh Rectangle::getFace() const
 
 ofMesh Contour::getFace() const
 {
-	auto &&vertices = Shape::getOutline().getVertices();
+	auto vertices = Shape::getOutline().getVertices();
 	if(vertices.empty()) {
 		return Shape2D::getFace();
 	}
@@ -178,3 +182,22 @@ ofMesh Contour::getFace() const
 	return mesh;
 }
 
+#pragma mark - AdjacencyLine
+
+vector<vec3> AdjacencyLine::getVertices() const
+{
+	vector<vec3> vertices;
+	auto &&src = Contour::getVertices();
+	vertices.reserve(src.size()+2);
+	vertices.push_back(rotation_*(lead_-anchor_)+anchor_);
+	vertices.insert(std::end(vertices), std::begin(src), std::end(src));
+	vertices.push_back(rotation_*(trail_-anchor_)+anchor_);
+	return vertices;
+}
+
+ofMesh AdjacencyLine::getOutline() const
+{
+	ofMesh mesh = Contour::getOutline();
+	mesh.setMode(OF_PRIMITIVE_LINE_STRIP_ADJACENCY);
+	return mesh;
+}
