@@ -12,30 +12,38 @@ namespace ofx {
 namespace meshshape {
 class Shape {
 public:
-	virtual ofMesh getOutline() const { return ofMesh(); }
+	void setRotation(float degrees, const glm::vec3 &axis);
+	void setAnchor(const glm::vec3 &anchor) { anchor_ = anchor; }
+	virtual ofMesh getOutline() const;
 	virtual ofMesh getFace() const { return ofMesh(); }
+protected:
+	virtual std::vector<glm::vec3> getVertices() const=0;
+	glm::vec3 anchor_;
+	glm::quat rotation_;
 };
 class Shape2D : public Shape {
 public:
-	void setRotation(float degrees, const glm::vec3 &axis);
-	glm::vec3 getNormal() const;
-	virtual glm::vec4 getPlate() const { return glm::vec4(getNormal(),0); }
-	virtual ofMesh getOutline(float width_inner, float width_outer) const { return ofMesh(); }
-protected:
-	glm::quat rotation_;
+	virtual glm::vec3 getNormal() const;
+	virtual bool isClosed() const=0;
+	virtual glm::vec4 getPlate() const;
+	virtual ofMesh getOutline() const;
+	virtual ofMesh getOutline(float width_inner, float width_outer) const;
 };
 class Rectangle : public Shape2D, public ofRectangle {
 public:
 	void setRectMode(ofRectMode mode) { rectmode_ = mode; }
-	glm::vec4 getPlate() const;
-	ofMesh getOutline() const;
+	bool isClosed() const { return true; }
 	ofMesh getFace() const;
-	ofMesh getOutline(float width_inner, float width_outer) const;
 private:
 	std::vector<glm::vec3> getVertices() const;
-	std::vector<glm::vec3> getVerticesFromOrigin() const;
-	
 	ofRectMode rectmode_=OF_RECTMODE_CORNER;
+};
+class Contour : public Shape2D, public ofPolyline {
+public:
+	bool isClosed() const { return ofPolyline::isClosed(); }
+	ofMesh getFace() const;
+private:
+	std::vector<glm::vec3> getVertices() const { return ofPolyline::getVertices(); }
 };
 }
 }
