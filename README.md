@@ -1,0 +1,4 @@
+# ofxMeshShape
+
+## License
+MIT license.
