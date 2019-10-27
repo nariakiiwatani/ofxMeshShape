@@ -27,7 +27,7 @@ public:
 	virtual bool isClosed() const=0;
 	virtual glm::vec4 getPlate() const;
 	virtual ofMesh getOutline() const;
-	virtual ofMesh getOutline(float width_inner, float width_outer) const;
+	virtual ofMesh getOutline(float width_inner, float width_outer, ofPrimitiveMode mode) const;
 };
 class Rectangle : public Shape2D, public ofRectangle {
 public:

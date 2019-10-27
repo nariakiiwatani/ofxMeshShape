@@ -88,8 +88,9 @@ ofMesh Shape2D::getOutline() const
 	return mesh;
 }
 
-ofMesh Shape2D::getOutline(float width_inner, float width_outer) const
+ofMesh Shape2D::getOutline(float width_inner, float width_outer, ofPrimitiveMode mode) const
 {
+	assert(mode == OF_PRIMITIVE_TRIANGLES || mode == OF_PRIMITIVE_TRIANGLE_STRIP);
 	auto getSlidedVertex = [](vec3 v0, vec3 v1, vec3 v2, float width_counterclockwise, vec3 normal) {
 		vec3 axis = cross(v2-v1, v1-v0);
 		if(length(axis) == 0) axis = normal;
@@ -122,13 +123,36 @@ ofMesh Shape2D::getOutline(float width_inner, float width_outer) const
 		vec3 outer = getSlidedVertex(v0, v1, v2, -width_outer, getNormal());
 		mesh.addVertex(inner);
 		mesh.addVertex(outer);
-		mesh.addIndices({i*2, i*2+1});
 	}
 	setNormal(mesh, getNormal());
-	if(isClosed()) {
-		mesh.addIndices({0,1});
+	switch(mode) {
+		case OF_PRIMITIVE_TRIANGLE_STRIP:
+			for(unsigned int i = 0; i < num; ++i) {
+				mesh.addIndices({i*2, i*2+1});
+			}
+			if(isClosed()) {
+				mesh.addIndices({0,1});
+			}
+			break;
+		case OF_PRIMITIVE_TRIANGLES: {
+			auto indices = [](unsigned int base) -> vector<unsigned int> {
+				return {base, base+1, base+2, base+2, base+1, base+3};
+			};
+			for(unsigned int i = 0; i < num-1; ++i) {
+				mesh.addIndices(indices(i*2));
+			}
+			if(isClosed()) {
+				auto ids = indices((num-1)*2);
+				ids[2] = ids[3] = 0;
+				ids[5] = 1;
+				mesh.addIndices(ids);
+			}
+		}	break;
+		default:
+			assert(false);
+			break;
 	}
-	mesh.setMode(OF_PRIMITIVE_TRIANGLE_STRIP);
+	mesh.setMode(mode);
 	return mesh;
 }
 
