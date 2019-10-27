@@ -44,7 +44,9 @@ protected:
 class Grid : public Rectangle {
 public:
 	void setDiv(unsigned int u, unsigned int v) { div_u_ = u, div_v_ = v; }
-	virtual ofMesh getOutline(float width_inner, float width_outer, ofPrimitiveMode mode) const;
+	ofMesh getOutline(float width_inner, float width_outer, ofPrimitiveMode mode) const;
+	ofMesh getOutline(float width_inner, float width_outer) const;
+	ofMesh getOutline(float width_outline_inner, float width_outline_outer, float width_inner) const;
 protected:
 	virtual std::vector<glm::vec3> getVertices() const;
 	unsigned int div_u_=0, div_v_=0;

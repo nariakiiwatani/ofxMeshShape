@@ -250,7 +250,15 @@ std::vector<glm::vec3> Grid::getVertices() const
 ofMesh Grid::getOutline(float width_inner, float width_outer, ofPrimitiveMode mode) const
 {
 	assert(mode == OF_PRIMITIVE_TRIANGLES);
-	ofMesh mesh = ((Rectangle)*this).getOutline(0, width_outer, OF_PRIMITIVE_TRIANGLES);
+	return getOutline(0, width_outer, width_inner);
+}
+ofMesh Grid::getOutline(float width_inner, float width_outer) const
+{
+	return getOutline(0, width_outer, width_inner);
+}
+ofMesh Grid::getOutline(float width_outline_inner, float width_outline_outer, float width_inner) const
+{
+	ofMesh mesh = ((Rectangle)*this).getOutline(width_outline_inner, width_outline_outer, OF_PRIMITIVE_TRIANGLES);
 	Rectangle child;
 	child.setAnchor(getAnchor());
 	child.setRotation(getRotation());
@@ -274,3 +282,4 @@ ofMesh Grid::getOutline(float width_inner, float width_outer, ofPrimitiveMode mo
 	}
 	return mesh;
 }
+
