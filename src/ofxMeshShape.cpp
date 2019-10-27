@@ -161,21 +161,20 @@ ofMesh Shape2D::getOutline(float width_inner, float width_outer, ofPrimitiveMode
 
 vector<vec3> Rectangle::getVertices() const
 {
-	vector<vec3> vertices(4, position);
+	vec3 pos = position;
 	switch(rectmode_) {
 		case OF_RECTMODE_CORNER:
-			vertices[0] += vec3(0,0,0);
-			vertices[1] += vec3(0, height, 0);
-			vertices[2] += vec3(width, height, 0);
-			vertices[3] += vec3(width, 0, 0);
 			break;
 		case OF_RECTMODE_CENTER:
-			vertices[0] += vec3(-width/2.f, -height/2.f, 0);
-			vertices[1] += vec3(-width/2.f, height/2.f, 0);
-			vertices[2] += vec3(width/2.f, height/2.f, 0);
-			vertices[3] += vec3(width/2.f, -height/2.f, 0);
+			pos.x -= width/2.f;
+			pos.y -= height/2.f;
 			break;
 	}
+	vector<vec3> vertices(4, pos);
+	vertices[0] += vec3(0,0,0);
+	vertices[1] += vec3(0, height, 0);
+	vertices[2] += vec3(width, height, 0);
+	vertices[3] += vec3(width, 0, 0);
 	return vertices;
 }
 ofMesh Rectangle::getFace() const
@@ -223,5 +222,55 @@ ofMesh AdjacencyLine::getOutline() const
 {
 	ofMesh mesh = Contour::getOutline();
 	mesh.setMode(OF_PRIMITIVE_LINE_STRIP_ADJACENCY);
+	return mesh;
+}
+
+#pragma mark - Grid
+std::vector<glm::vec3> Grid::getVertices() const
+{
+	vec3 pos = position;
+	switch(rectmode_) {
+		case OF_RECTMODE_CORNER:
+			break;
+		case OF_RECTMODE_CENTER:
+			pos.x -= width/2.f;
+			pos.y -= height/2.f;
+			break;
+	}
+	vector<vec3> vertices((div_u_+2)*(div_v_+2), pos);
+	vec3 d = vec3(width/(float)(div_u_+1), height/(float)(div_v_+1), 0);
+	for(int y = 0; y < div_v_+2; ++y) {
+		for(int x = 0; x < div_u_+2; ++x) {
+			vertices[x+y*(div_u_+2)] += d*vec2(x,y);
+		}
+	}
+	return vertices;
+}
+
+ofMesh Grid::getOutline(float width_inner, float width_outer, ofPrimitiveMode mode) const
+{
+	assert(mode == OF_PRIMITIVE_TRIANGLES);
+	ofMesh mesh = ((Rectangle)*this).getOutline(0, width_outer, OF_PRIMITIVE_TRIANGLES);
+	Rectangle child;
+	child.setAnchor(getAnchor());
+	child.setRotation(getRotation());
+	child.setRectMode(OF_RECTMODE_CORNER);
+	child.width = width/(float)(div_u_+1);
+	child.height = height/(float)(div_v_+1);
+	vec3 pos = position;
+	switch(rectmode_) {
+		case OF_RECTMODE_CORNER:
+			break;
+		case OF_RECTMODE_CENTER:
+			pos -= vec3(width, height, 0)/2.f;
+			break;
+	}
+	for(int y = 0; y < div_v_+1; ++y) {
+		child.position.y = pos.y+y*child.height;
+		for(int x = 0; x < div_u_+1; ++x) {
+			child.position.x = pos.x+x*child.width;
+			mesh.append(child.getOutline(width_inner/2.f, 0, OF_PRIMITIVE_TRIANGLES));
+		}
+	}
 	return mesh;
 }

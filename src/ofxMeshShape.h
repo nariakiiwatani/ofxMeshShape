@@ -13,9 +13,12 @@ namespace meshshape {
 class Shape {
 public:
 	void setRotation(float degrees, const glm::vec3 &axis);
+	void setRotation(const glm::quat &rotation) { rotation_ = rotation; }
 	void setAnchor(const glm::vec3 &anchor) { anchor_ = anchor; }
 	virtual ofMesh getOutline() const;
 	virtual ofMesh getFace() const { return ofMesh(); }
+	glm::vec3 getAnchor() const { return anchor_; }
+	glm::quat getRotation() const { return rotation_; }
 protected:
 	virtual std::vector<glm::vec3> getVertices() const=0;
 	glm::vec3 anchor_;
@@ -37,6 +40,14 @@ public:
 protected:
 	virtual std::vector<glm::vec3> getVertices() const;
 	ofRectMode rectmode_=OF_RECTMODE_CORNER;
+};
+class Grid : public Rectangle {
+public:
+	void setDiv(unsigned int u, unsigned int v) { div_u_ = u, div_v_ = v; }
+	virtual ofMesh getOutline(float width_inner, float width_outer, ofPrimitiveMode mode) const;
+protected:
+	virtual std::vector<glm::vec3> getVertices() const;
+	unsigned int div_u_=0, div_v_=0;
 };
 class Contour : public Shape2D, public ofPolyline {
 public:
