@@ -32,6 +32,15 @@ public:
 	virtual ofMesh getOutline() const;
 	virtual ofMesh getOutline(float width_inner, float width_outer, ofPrimitiveMode mode) const;
 };
+class Line : public Shape2D {
+public:
+	void setEdge(const glm::vec3 &a, const glm::vec3 &b) { a_=a; b_=b; }
+	bool isClosed() const { return false; }
+	ofMesh getOutline(float width_inner, float width_outer, ofPrimitiveMode mode) const;
+private:
+	virtual std::vector<glm::vec3> getVertices() const;
+	glm::vec3 a_, b_;
+};
 class Rectangle : public Shape2D, public ofRectangle {
 public:
 	void setRectMode(ofRectMode mode) { rectmode_ = mode; }
@@ -41,12 +50,43 @@ protected:
 	virtual std::vector<glm::vec3> getVertices() const;
 	ofRectMode rectmode_=OF_RECTMODE_CORNER;
 };
+class Arc : public Shape2D {
+public:
+	void setPosition(const glm::vec3 &center) { center_ = center; }
+	void setResolution(int resolution) { resolution_ = resolution; }
+	void setRadius(float radius) { radius_ = radius; }
+	void setAngleRange(float a, float b) { angle_range_[0] = a; angle_range_[1] = b; }
+	void setClosed(bool close) { is_closed_ = true; }
+	bool isClosed() const { return is_closed_; }
+	ofMesh getFace() const;
+protected:
+	virtual std::vector<glm::vec3> getVertices() const;
+	glm::vec3 center_=glm::vec3(0,0,0);
+	int resolution_=64;
+	float radius_=1;
+	float angle_range_[2]={0,360};
+	bool is_closed_=false;
+};
+class Circle : public Arc {
+public:
+	void setPosition(const glm::vec3 &center) { center_ = center; }
+	void setResolution(int resolution) { resolution_ = resolution; }
+	void setRadius(float radius) { radius_ = radius; }
+	bool isClosed() const { return true; }
+	ofMesh getFace() const;
+protected:
+	virtual std::vector<glm::vec3> getVertices() const;
+	glm::vec3 center_=glm::vec3(0,0,0);
+	int resolution_=64;
+	float radius_=1;
+};
 class Grid : public Rectangle {
 public:
 	void setDiv(unsigned int u, unsigned int v) { div_u_ = u, div_v_ = v; }
 	ofMesh getOutline(float width_inner, float width_outer, ofPrimitiveMode mode) const;
 	ofMesh getOutline(float width_inner, float width_outer) const;
 	ofMesh getOutline(float width_outline_inner, float width_outline_outer, float width_inner) const;
+	ofMesh getFace() const;
 protected:
 	virtual std::vector<glm::vec3> getVertices() const;
 	unsigned int div_u_=0, div_v_=0;

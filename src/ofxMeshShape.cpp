@@ -157,6 +157,51 @@ ofMesh Shape2D::getOutline(float width_inner, float width_outer, ofPrimitiveMode
 }
 
 
+#pragma mark - Line
+
+ofMesh Line::getOutline(float width_left, float width_right, ofPrimitiveMode mode) const
+{
+	assert(mode == OF_PRIMITIVE_TRIANGLES || mode == OF_PRIMITIVE_TRIANGLE_STRIP || mode == OF_PRIMITIVE_TRIANGLE_FAN);
+	ofMesh mesh = Shape2D::getOutline();
+	auto vertices = mesh.getVertices();
+	if(vertices.size() < 2) {
+		return ofMesh();
+	}
+	mesh.clearVertices();
+	mesh.clearIndices();
+	auto sub = vertices[1]-vertices[0];
+	auto normal = getNormal();
+	vec3 move = normalize(glm::rotate(sub, half_pi<float>(), normal));
+	mesh.addVertex(vertices[0]+move*width_left);
+	mesh.addVertex(vertices[0]-move*width_right);
+	mesh.addVertex(vertices[1]+move*width_left);
+	mesh.addVertex(vertices[1]-move*width_right);
+	switch(mode) {
+		case OF_PRIMITIVE_TRIANGLE_STRIP:
+			mesh.addIndices({0,1,2,3});
+			break;
+		case OF_PRIMITIVE_TRIANGLES: {
+			auto indices = [](unsigned int base) -> vector<unsigned int> {
+				return {base, base+1, base+2, base+2, base+1, base+3};
+			};
+			mesh.addIndices({0,1,2,2,1,3});
+		}	break;
+		case OF_PRIMITIVE_TRIANGLE_FAN:
+			mesh.addIndices({0,1,3,2});
+			break;
+		default:
+			assert(false);
+			break;
+	}
+	mesh.setMode(mode);
+
+	return mesh;
+}
+std::vector<glm::vec3> Line::getVertices() const
+{
+	return {a_,b_};
+}
+
 #pragma mark - Rectangle
 
 vector<vec3> Rectangle::getVertices() const
@@ -183,6 +228,45 @@ ofMesh Rectangle::getFace() const
 	mesh.setMode(OF_PRIMITIVE_TRIANGLE_STRIP);
 	mesh.addIndices({0,1,3,2});
 	return mesh;
+}
+
+#pragma mark - Arc
+
+ofMesh Arc::getFace() const
+{
+	ofMesh mesh = getOutline();
+	mesh.setMode(OF_PRIMITIVE_TRIANGLE_FAN);
+	return mesh;
+}
+std::vector<glm::vec3> Arc::getVertices() const
+{
+	std::vector<glm::vec3> ret;
+	ret.reserve(resolution_+2);
+	if(isClosed()) {
+		ret.push_back(center_);
+	}
+	for(int i = 0; i <= resolution_; ++i) {
+		ret.push_back(center_+rotateZ(vec3(radius_,0,0), radians(ofMap(i,0,resolution_,angle_range_[0],angle_range_[1]))));
+	}
+	return ret;
+}
+
+#pragma mark - Circle
+
+ofMesh Circle::getFace() const
+{
+	ofMesh mesh = getOutline();
+	mesh.setMode(OF_PRIMITIVE_TRIANGLE_FAN);
+	return mesh;
+}
+std::vector<glm::vec3> Circle::getVertices() const
+{
+	std::vector<glm::vec3> ret;
+	ret.reserve(resolution_);
+	for(int i = 0; i < resolution_; ++i) {
+		ret.push_back(center_+rotateZ(vec3(radius_,0,0), radians(ofMap(i,0,resolution_,0,360))));
+	}
+	return ret;
 }
 
 #pragma mark - Contour
@@ -273,11 +357,27 @@ ofMesh Grid::getOutline(float width_outline_inner, float width_outline_outer, fl
 			pos -= vec3(width, height, 0)/2.f;
 			break;
 	}
-	for(int y = 0; y < div_v_+1; ++y) {
+	for(int y = 0; y <= div_v_; ++y) {
 		child.position.y = pos.y+y*child.height;
-		for(int x = 0; x < div_u_+1; ++x) {
+		for(int x = 0; x <= div_u_; ++x) {
 			child.position.x = pos.x+x*child.width;
 			mesh.append(child.getOutline(width_inner/2.f, 0, OF_PRIMITIVE_TRIANGLES));
+		}
+	}
+	return mesh;
+}
+
+ofMesh Grid::getFace() const
+{
+	ofMesh mesh = Shape2D::getOutline();
+	mesh.setMode(OF_PRIMITIVE_TRIANGLES);
+	auto indices = [&](unsigned int base) -> vector<unsigned int> {
+		auto below = base+div_u_+2;
+		return {base, below, base+1, base+1, below, below+1};
+	};
+	for(int y = 0; y <= div_v_; ++y) {
+		for(int x = 0; x <= div_u_; ++x) {
+			mesh.addIndices(indices(x+y*(div_u_+1)));
 		}
 	}
 	return mesh;
